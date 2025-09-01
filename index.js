@@ -1,22 +1,22 @@
-import express from "express";
-import dotenv from "dotenv";
-import helmet from "helmet";
-import cors from "cors";
-import apiRoutes from "./api/v1/routes.js";
-import { connectMongo } from "./config/mongo.js";
-import { connectTurso, db } from "./config/turso.js";
-import limiter from "./middleware/rateLimiter.js";
-import errorHandler from "./middleware/errorHandler.js";
-import cookieParser from "cookie-parser";
+import express from "express"
+import dotenv from "dotenv"
+import helmet from "helmet"
+import cors from "cors"
+import apiRoutes from "./api/v1/routes.js"
+import { connectMongo } from "./config/mongo.js"
+// import { connectTurso, db } from "./config/turso.js"
+import limiter from "./middleware/rateLimiter.js"
+import errorHandler from "./middleware/errorHandler.js"
+import cookieParser from "cookie-parser"
 
-dotenv.config();
+dotenv.config()
 
-const app = express();
+const app = express()
 
-app.set("trust proxy", 1);
+app.set("trust proxy", 1)
 
 // Global middlewares
-app.use(helmet());
+app.use(helmet())
 
 const corsOptions = {
   origin: [
@@ -26,14 +26,14 @@ const corsOptions = {
     "https://rag-notes.vercel.app",
   ], // frontend domain
   credentials: true, // ✅ allow cookies to be sent
-};
+}
 
-app.use(cors(corsOptions));
-app.use(limiter);
-app.use(express.json());
-app.use(cookieParser());
+app.use(cors(corsOptions))
+app.use(limiter)
+app.use(express.json())
+app.use(cookieParser())
 // Centralized routes
-app.use("/", apiRoutes(db));
+app.use("/", apiRoutes())
 app.get("/", (_req, res) => {
   res.send(`
       <!DOCTYPE html>
@@ -80,28 +80,28 @@ app.get("/", (_req, res) => {
         </div>
       </body>
       </html>
-    `);
-});
+    `)
+})
 // Centralized error handling
-app.use(errorHandler);
+app.use(errorHandler)
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000
 
-(async () => {
+;(async () => {
   try {
-    await connectMongo();
-    await connectTurso();
+    await connectMongo()
+    // await connectTurso();
     app.listen(PORT, () => {
-      console.log(`Server listening on port ${PORT} ✅`);
-    });
+      console.log(`Server listening on port ${PORT} ✅`)
+    })
   } catch (err) {
-    console.error("❌ Startup error:", err);
-    process.exit(1);
+    console.error("❌ Startup error:", err)
+    process.exit(1)
   }
-})();
+})()
 
 // Handle unhandled promise rejections globally
 process.on("unhandledRejection", (err) => {
-  console.error("💥 Unhandled Rejection:", err.message);
-  process.exit(1);
-});
+  console.error("💥 Unhandled Rejection:", err.message)
+  process.exit(1)
+})
