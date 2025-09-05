@@ -1,7 +1,7 @@
-import express from "express";
-import { OpenAI } from "openai";
-import dotenv from "dotenv";
-import { Note } from "../../../models/Note.js";
+import express from "express"
+import { OpenAI } from "openai"
+import dotenv from "dotenv"
+import { Note } from "../../../models/Note.js"
 import {
   getAllNotes,
   createNote,
@@ -12,83 +12,81 @@ import {
   deleteUserNote,
   searchUserNotes,
   getNoteById,
-} from "./controllers/notesController.js";
-import { authUser } from "../../../middleware/auth.js";
-import { User } from "../../../models/User.js";
-import mongoose from "mongoose";
-import { generateEmbedding } from "../../../utils/generateEmbedding.js";
+} from "./controllers/notesController.js"
+import { authUser } from "../../../middleware/auth.js"
+import { User } from "../../../models/User.js"
+import mongoose from "mongoose"
+import { generateEmbedding } from "../../../utils/generateEmbedding.js"
 
-dotenv.config();
+dotenv.config()
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY, // Add your OpenAI API key to the .env file
-});
+})
 
-const router = express.Router();
+const router = express.Router()
 
 // ✅ Use these routes without auth
 // 📋 GET ALL NOTES (regardless of user)
-router.get("/notes", getAllNotes);
+router.get("/notes", getAllNotes)
 
-router.post("/notes", createNote);
+router.post("/notes", createNote)
 
 // ❌ Use these routes after implimenting auth
 // Add Note
 // router.post("/add-note", authUser, addNote);
-router.post("/add-note", authUser, createNote);
+router.post("/add-note", authUser, createNote)
 
 // Edit Note
-router.put("/edit-note/:noteId", authUser, editNote);
+router.put("/edit-note/:noteId", authUser, editNote)
 
 // Update isPinned
-router.put("/update-note-pinned/:noteId", authUser, togglePin);
+router.put("/update-note-pinned/:noteId", authUser, togglePin)
 
 // Get all Notes by user
-router.get("/get-all-notes", authUser, getUserNotes);
+router.get("/get-all-notes", authUser, getUserNotes)
 
 // Delete Note
-router.delete("/delete-note/:noteId", authUser, deleteUserNote);
+router.delete("/delete-note/:noteId", authUser, deleteUserNote)
 
 // Search Notes
-router.get("/search-notes", authUser, searchUserNotes);
+router.get("/search-notes", authUser, searchUserNotes)
 
 // Get a note by ID (protected route)
-router.get("/get-note/:noteId", authUser, getNoteById);
+router.get("/get-note/:noteId", authUser, getNoteById)
 
 // Get public profile by user ID
 router.get("/public-profile/:userId", async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId).select(
-      "fullName email"
-    );
+    const user = await User.findById(req.params.userId).select("fullName email")
     if (!user) {
-      return res.status(404).json({ error: true, message: "User not found" });
+      return res.status(404).json({ error: true, message: "User not found" })
     }
-    res.status(200).json({ error: false, user });
+    res.status(200).json({ error: false, user })
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: true, message: "Server error" });
+    console.error(err)
+    res.status(500).json({ error: true, message: "Server error" })
   }
-});
+})
 
 // Get public notes for a user
 router.get("/public-notes/:userId", async (req, res) => {
-  const { userId } = req.params;
-  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-  const limitRaw = parseInt(req.query.limit, 10) || 10;
-  const limit = Math.min(Math.max(1, limitRaw), 100);
+  const { userId } = req.params
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1)
+  const limitRaw = parseInt(req.query.limit, 10) || 10
+  const limit = Math.min(Math.max(1, limitRaw), 100)
 
   if (!mongoose.Types.ObjectId.isValid(userId)) {
-    return res.status(400).json({ error: true, message: "Invalid user ID" });
+    return res.status(400).json({ error: true, message: "Invalid user ID" })
   }
 
   try {
-    const filter = { userId, isPublic: true };
-    const total = await Note.countDocuments(filter);
+    const filter = { userId, isPublic: true }
+    const total = await Note.countDocuments(filter)
     const notes = await Note.find(filter)
       .sort({ createdOn: -1 })
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
 
     res.status(200).json({
       error: false,
@@ -97,50 +95,52 @@ router.get("/public-notes/:userId", async (req, res) => {
       limit,
       total,
       totalPages: Math.max(1, Math.ceil(total / limit)),
-    });
+    })
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: true, message: "Server error", details: err.message });
+    console.error(err)
+    res
+      .status(500)
+      .json({ error: true, message: "Server error", details: err.message })
   }
-});
+})
 
 // Update note visibility (publish/unpublish)
 router.put("/notes/:noteId/visibility", authUser, async (req, res) => {
-  const { isPublic } = req.body;
-  const { user } = req.user;
+  const { isPublic } = req.body
+  const { user } = req.user
 
   try {
     const note = await Note.findOneAndUpdate(
       { _id: req.params.noteId, userId: user._id }, // Ensure the note belongs to the user
       { isPublic },
       { new: true } // Return the updated note
-    );
+    )
 
     if (!note) {
       return res
         .status(404)
-        .json({ error: true, message: "Note not found or unauthorized" });
+        .json({ error: true, message: "Note not found or unauthorized" })
     }
 
-    res.status(200).json({ error: false, note });
+    res.status(200).json({ error: false, note })
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: true, message: "Server error" });
+    console.error(err)
+    res.status(500).json({ error: true, message: "Server error" })
   }
-});
+})
 
 // Search notes using vector embeddings
 router.post("/search-notes", authUser, async (req, res) => {
-  const { query } = req.body;
-  const userId = req.user.user._id;
+  const { query } = req.body
+  const userId = req.user.user._id
 
   if (!query) {
-    return res.status(400).json({ error: true, message: "Query is required" });
+    return res.status(400).json({ error: true, message: "Query is required" })
   }
 
   try {
     // Generate embedding for the query
-    const queryEmbedding = await generateEmbedding(query);
+    const queryEmbedding = await generateEmbedding(query)
 
     // Perform vector search in MongoDB
     const results = await Note.aggregate([
@@ -157,24 +157,24 @@ router.post("/search-notes", authUser, async (req, res) => {
           },
         },
       },
-    ]);
+    ])
 
     if (!results || results.length === 0) {
       return res
         .status(404)
-        .json({ error: true, message: "No matching notes found" });
+        .json({ error: true, message: "No matching notes found" })
     }
 
-    res.status(200).json({ error: false, results });
+    res.status(200).json({ error: false, results })
   } catch (err) {
-    console.error("Error performing vector search:", err);
+    console.error("Error performing vector search:", err)
     res.status(500).json({
       error: true,
       message: "Failed to perform search",
       details: err.message,
-    });
+    })
   }
-});
+})
 
 // Answer a question based on a user's notes
 // router.post("/answer-question/:userId", async (req, res) => {
@@ -247,13 +247,13 @@ router.post("/search-notes", authUser, async (req, res) => {
 
 // Answer a question based on a user's notes, using vector search
 router.post("/answer-question/:userId", async (req, res) => {
-  const { userId } = req.params;
-  const { question } = req.body;
+  const { userId } = req.params
+  const { question } = req.body
 
   // … validation omitted for brevity …
 
   // 1️⃣ Generate an embedding for the question
-  const questionEmbedding = await generateEmbedding(question);
+  const questionEmbedding = await generateEmbedding(question)
 
   // 2️⃣ Run vector-search against your notes collection
   const topNotes = await Note.aggregate([
@@ -268,18 +268,18 @@ router.post("/answer-question/:userId", async (req, res) => {
         filter: { userId, isPublic: true },
       },
     },
-  ]);
+  ])
 
   if (!topNotes.length) {
     return res
       .status(404)
-      .json({ error: true, message: "No relevant notes found" });
+      .json({ error: true, message: "No relevant notes found" })
   }
 
   // 3️⃣ Build context from only those top hits
   const context = topNotes
     .map((n) => `Title: ${n.title}\nContent: ${n.content}`)
-    .join("\n\n");
+    .join("\n\n")
 
   // 4️⃣ Ask OpenAI using just that filtered context
   const prompt = `
@@ -289,7 +289,7 @@ ${context}
 
 Question: ${question}
 Answer:
-`;
+`
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -299,12 +299,12 @@ Answer:
     ],
     max_tokens: 300,
     temperature: 0.7,
-  });
+  })
 
   res.json({
     error: false,
     answer: response.choices[0].message.content.trim(),
-  });
-});
+  })
+})
 
-export default router;
+export default router

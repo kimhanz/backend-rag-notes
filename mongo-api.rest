@@ -74,3 +74,13 @@ Cookie: accessToken=YOUR_JWT_TOKEN
 ### User notes (paginated + search)
 GET http://localhost:3030/mongo/get-all-notes?page=2&limit=5&q=vector
 Cookie: accessToken=YOUR_JWT_TOKEN
+
+
+### Test Error AI
+POST http://localhost:3030/mongo/answer-question/68b51e41eaa9ae433d5dd87a
+Cookie: accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGI5NGI0NmM2Zjc4MWU3MTE5YWUxMDUiLCJpYXQiOjE3NTY5NzQzNDcsImV4cCI6MTc1NzgzODM0N30.m5aDcLimT1KCyMiXpOhKCbHyWbXjIlXbT8VA3rgUJB4
+Content-Type: application/json
+
+{
+  "question": "Hello World"
+}

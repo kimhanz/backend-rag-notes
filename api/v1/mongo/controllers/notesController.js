@@ -321,7 +321,7 @@ export const createNote = async (req, res) => {
 
   try {
     // Generate embedding for the note content
-    // const embedding = await generateEmbedding(content)
+    const embedding = await generateEmbedding(content)
 
     const note = await Note.create({
       title,
@@ -330,7 +330,7 @@ export const createNote = async (req, res) => {
       isPinned,
       isPublic,
       userId,
-      // embedding, // Store the embedding
+      embedding, // Store the embedding
     })
 
     res
